@@ -1,3 +1,4 @@
+; === LUCYENE PINHEIRO NEVES ===
 ; === INSTRUÇÕES ===
 ; === DEFINIÇÃO DE VARIÁVEIS ===
 
@@ -81,15 +82,20 @@ end
 ; === PROCEDIMENTOS DE RECOLORIR ===
 
 to recolor-patch
-  ifelse food > 0 [
-    ; Patches com comida são coloridos de acordo com a fonte
-    if food-source-number = 1 [ set pcolor cyan ]
-    if food-source-number = 2 [ set pcolor sky ]
-    if food-source-number = 3 [ set pcolor blue ]
-    if food-source-number = 4 [ set pcolor red ]
-  ] [
-    ifelse chemical > 5  [
-      set pcolor green  ; Patches normais permanecem verdes
+  ifelse nest? [
+    set pcolor violet ; ninho em violeta
+  ][
+    ifelse food > 0 [
+      ; Patches com comida são coloridos de acordo com a fonte
+      if food-source-number = 1 [ set pcolor cyan ]
+      if food-source-number = 2 [ set pcolor sky ]
+      if food-source-number = 3 [ set pcolor blue ]
+      if food-source-number = 4 [ set pcolor red ]
+  ][
+      ifelse chemical > 1 [
+        set pcolor scale-color yellow chemical 0.1 5  ; Feromônio em amarelo
+      ][
+
     ]
   ]
 end
@@ -99,7 +105,7 @@ end
 
 to look-for-food
   if food > 0 [
-    set color orange + 1                ; muda a cor para indicar que está carregando comida
+    set color blue + 1                  ; muda a cor para indicar que está carregando comida
     set food food - 1                   ; reduz a quantidade de comida no patch
     rt 180                              ; vira 180 graus para retornar ao ninho
     stop                                ; finaliza o procedimento atual
