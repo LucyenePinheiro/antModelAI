@@ -9,6 +9,7 @@ patches-own [
   nest?                ; verdadeiro se o patch é parte do ninho, falso caso contrário
   nest-scent           ; valor numérico maior próximo ao ninho, usado para orientar as formigas
   food-source-number   ; identifica as fontes de alimento (1, 2, 3 ou 4)
+  wall?                ; verdadeiro se o patch faz parte da muralha
 ]
 
 ; === PROCEDIMENTOS DE CONFIGURAÇÃO ===
@@ -34,22 +35,22 @@ to setup-patches
 end
 
 to setup-nest
-  set nest? (distancexy 0 0) < 5         ; define patches dentro de um raio de 5 unidades como ninho
+  set nest? (distancexy 0 0) < 3         ; define patches dentro de um raio de 5 unidades como ninho
   set nest-scent 200 - distancexy 0 0    ; valor maior próximo ao ninho, decrescendo com a distância
 end
 
 to setup-food
   ; Configura fontes de alimento em posições específicas
-  if (distancexy (0.6 * max-pxcor) 0) < 5 [
+  if (distancexy (0.6 * max-pxcor) 0) < 4 [
     set food-source-number 1
   ]
-  if (distancexy (-0.6 * max-pxcor) (-0.6 * max-pycor)) < 5 [
+  if (distancexy (-0.6 * max-pxcor) (-0.6 * max-pycor)) < 2 [
     set food-source-number 2
   ]
-  if (distancexy (-0.6 * max-pxcor) (0.19 * max-pycor)) < 5 [
+  if (distancexy (-0.6 * max-pxcor) (0.19 * max-pycor)) < 3 [
     set food-source-number 3
   ]
-  if (distancexy (-0.8 * max-pxcor) (0.8 * max-pycor)) < 5 [
+  if (distancexy (-0.8 * max-pxcor) (0.8 * max-pycor)) < 2 [
     set food-source-number 4
   ]
   ; Se o patch faz parte de uma fonte de alimento, atribui uma quantidade de comida (1 ou 2)
