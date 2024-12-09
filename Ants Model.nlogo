@@ -2,6 +2,9 @@
 ; === INSTRUÇÕES ===
 ; === DEFINIÇÃO DE VARIÁVEIS ===
 
+breed [tamtams tamtam]
+breed [flowers flower]
+
 ; Variáveis dos patches (espaço onde as formigas se movem)
 patches-own [
   chemical             ; quantidade de feromônio neste patch
@@ -16,33 +19,52 @@ patches-own [
 
 to setup
   clear-all                             ; limpa o mundo e reinicia a simulação
-  ask patches [ set pcolor green ]      ; define o chão verde inicialmente
+  ask patches [ set pcolor brown ]      ; define o chão verde inicialmente
   set-default-shape turtles "bug"       ; define o formato das formigas como "inseto"
   create-turtles population [           ; cria formigas com base no valor do slider 'population'
     set size 2                          ; aumenta o tamanho para melhor visualização
     set color red                       ; vermelho indica que não está carregando comida
   ]
+
   setup-patches                         ; chama o procedimento para configurar os patches
+  move-outside-nest                     ; movimenta todas as formigas para fora do ninho e da muralha
+
+  create-tamtams 1[
+    setxy random-xcor random-ycor
+    set shape "tamtam"
+    set size 10
+  ]
+  create-flowers 20[
+    setxy random-xcor random-ycor
+    set shape "flower"
+    set size 5
+  ]
   reset-ticks                           ; reinicia o contador de tempo da simulação
 end
 
 to setup-patches
   ask patches [
     setup-nest                          ; configura o ninho nos patches
+    setup-wall                          ; configura a muralha nos patches
     setup-food                          ; configura as fontes de alimento
     recolor-patch                       ; ajusta a cor inicial dos patches
   ]
 end
 
 to setup-nest
-  set nest? (distancexy 0 0) < 3         ; define patches dentro de um raio de 5 unidades como ninho
+  set nest? (distancexy 0 0) < 3         ; define patches dentro de um raio de 3 unidades como ninho
   set nest-scent 200 - distancexy 0 0    ; valor maior próximo ao ninho, decrescendo com a distância
+end
+
+to setup-wall
+  set wall? (distancexy 0 0) >= 9.2 and (distancexy 0 0) <= 10 ; cria muralha em torno do ninho
 end
 
 to setup-food
   ; Configura fontes de alimento em posições específicas
   if (distancexy (0.6 * max-pxcor) 0) < 4 [
     set food-source-number 1
+
   ]
   if (distancexy (-0.6 * max-pxcor) (-0.6 * max-pycor)) < 2 [
     set food-source-number 2
@@ -61,7 +83,17 @@ end
 
 ; === PROCEDIMENTOS PRINCIPAIS ===
 
+to pickDirection
+  let flip random 2
+  ifelse flip = 0 [right random 45][left random 45]
+end
+
 to go
+  ask tamtams [
+    forward 1
+    pickDirection
+  ]
+  tick
   ask turtles [
     if who >= ticks [ stop ]             ; sincroniza a saída das formigas do ninho com o tempo
     ifelse color = red [
@@ -72,6 +104,12 @@ to go
     wiggle                               ; movimento aleatório para simular procura
     fd 1                                 ; move-se para frente
   ]
+
+  ; Verifica se toda a comida foi coletada
+  if all? patches [ food = 0 ] [
+    setup                                  ; reinicia a simulação
+  ]
+
   diffuse chemical (diffusion-rate / 100)  ; difusão do feromônio entre os patches
   ask patches [
     set chemical chemical * (100 - evaporation-rate) / 100  ; evaporação do feromônio
@@ -83,47 +121,50 @@ end
 ; === PROCEDIMENTOS DE RECOLORIR ===
 
 to recolor-patch
-  ifelse nest? [
-    set pcolor violet ; ninho em violeta
-  ][
-    ifelse food > 0 [
-      ; Patches com comida são coloridos de acordo com a fonte
-      if food-source-number = 1 [ set pcolor cyan ]
-      if food-source-number = 2 [ set pcolor sky ]
-      if food-source-number = 3 [ set pcolor blue ]
-      if food-source-number = 4 [ set pcolor red ]
-  ][
-      ifelse chemical > 1 [
-        set pcolor scale-color yellow chemical 0.1 5  ; Feromônio em amarelo
-      ][
-        set pcolor green  ; Patches normais permanecem verdes
+  ifelse wall? [
+    set pcolor gray
+  ] [
+    ifelse nest? [
+      set pcolor violet ; ninho em violeta
+    ] [
+      ifelse food > 0 [
+        ; Patches com comida são coloridos de acordo com a fonte
+        if food-source-number = 1 [ set pcolor cyan ]
+        if food-source-number = 2 [ set pcolor sky ]
+        if food-source-number = 3 [ set pcolor blue ]
+        if food-source-number = 4 [ set pcolor red ]
+      ] [
+        ifelse chemical > 1 [
+          set pcolor scale-color yellow chemical 0.1 5  ; Feromônio em amarelo
+        ] [
+          set pcolor brown  ; Patches normais permanecem verdes
+        ]
+      ]
     ]
   ]
- ]
 end
-
 
 ; === COMPORTAMENTOS DAS FORMIGAS ===
 
 to look-for-food
   if food > 0 [
-    set color blue + 1                  ; muda a cor para indicar que está carregando comida
-    set food food - 1                   ; reduz a quantidade de comida no patch
-    rt 180                              ; vira 180 graus para retornar ao ninho
-    stop                                ; finaliza o procedimento atual
+    set color pcolor                      ; muda a cor da formiga para a cor da comida
+    set food food - 1                     ; reduz a quantidade de comida no patch
+    rt 180                                ; vira 180 graus para retornar ao ninho
+    stop                                  ; finaliza o procedimento atual
   ]
   if (chemical >= 0.05) and (chemical < 2) [
-    uphill-chemical                     ; segue o rastro de feromônio
+    uphill-chemical                       ; segue o rastro de feromônio
   ]
 end
 
 to return-to-nest
   ifelse nest? [
-    set color red                       ; deposita a comida e muda a cor para não carregando
-    rt 180                              ; vira 180 graus para sair novamente
+    set color red                         ; deposita a comida e muda a cor para não carregando
+    rt 180                                ; vira 180 graus para sair novamente
   ] [
-    set chemical chemical + 60          ; deposita feromônio no caminho de volta
-    uphill-nest-scent                   ; move-se em direção ao ninho seguindo o gradiente
+    set chemical chemical + 60            ; deposita feromônio no caminho de volta
+    uphill-nest-scent                     ; move-se em direção ao ninho seguindo o gradiente
   ]
 end
 
@@ -155,10 +196,10 @@ to uphill-nest-scent
   ]
 end
 
-to wiggle
-  rt random 40                           ; vira um ângulo aleatório à direita
-  lt random 40                           ; vira um ângulo aleatório à esquerda
-  if not can-move? 1 [ rt 180 ]          ; se não puder se mover, vira 180 graus
+to wiggle  ;; procedimento das formigas
+  rt random 40
+  lt random 40
+  if not can-move? 1 or [wall?] of patch-ahead 1 [ rt 180 ] ;; evita a muralha
 end
 
 ; === FUNÇÕES AUXILIARES ===
@@ -174,6 +215,27 @@ to-report chemical-scent-at-angle [angle]
   if p = nobody [ report 0 ]             ; se não houver patch, retorna 0
   report [chemical] of p                 ; retorna o valor de 'chemical' do patch
 end
+
+;;;;;;;;;;;;;;;;;;;;;;;
+;;; Funções novas ;;;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+to move-outside-nest
+  ;; Tenta escolher um patch fora do ninho e da muralha
+  let target-patch one-of patches with [nest? = false and wall? = false]
+
+  ;; Se encontrar um patch válido, move a formiga. Caso contrário, não faz nada
+  if target-patch != nobody [
+    move-to target-patch
+  ]
+  ;; Caso não encontre um patch válido, move para um patch aleatório fora do ninho e da muralha
+  if target-patch = nobody [
+    let random-patch one-of patches with [nest? = false and wall? = false]
+    move-to random-patch
+  ]
+end
+
+
 @#$#@#$#@
 GRAPHICS-WINDOW
 257
@@ -377,10 +439,34 @@ true
 0
 Polygon -7500403 true true 150 5 40 250 150 205 260 250
 
+agroboy
+false
+0
+Polygon -7500403 true true 105 90 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285 180 195 195 90
+Polygon -1 true false 60 195 90 210 114 154 120 195 180 195 187 157 210 210 240 195 195 90 165 90 150 105 150 150 135 90 105 90
+Circle -7500403 true true 110 5 80
+Rectangle -7500403 true true 127 79 172 94
+Polygon -1184463 true false 120 90 120 180 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285 180 195 180 90 172 89 165 135 135 135 127 90
+Polygon -16777216 true false 116 4 113 21 71 33 71 40 109 48 117 34 144 27 180 26 188 36 224 23 222 14 178 16 167 0
+Line -16777216 false 225 90 270 90
+Line -16777216 false 225 15 225 90
+Line -16777216 false 270 15 270 90
+Line -16777216 false 247 15 247 90
+Rectangle -16777216 true false 240 105 255 315
+
 airplane
 true
 0
 Polygon -7500403 true true 150 0 135 15 120 60 120 105 15 165 15 195 120 180 135 240 105 270 120 285 150 270 180 285 210 270 165 240 180 180 285 195 285 165 180 105 180 60 165 15
+
+apple
+false
+0
+Polygon -2674135 true false 33 58 0 150 30 240 105 285 135 285 150 270 165 285 195 285 255 255 300 150 268 62 226 43 194 36 148 32 105 35
+Line -16777216 false 106 55 151 62
+Line -16777216 false 157 62 209 57
+Polygon -6459832 true false 152 62 158 62 160 46 156 30 147 18 132 26 142 35 148 46
+Polygon -16777216 false false 132 25 144 38 147 48 151 62 158 63 159 47 155 30 147 18
 
 arrow
 true
@@ -409,14 +495,28 @@ Line -7500403 true 150 100 220 30
 butterfly
 true
 0
-Polygon -7500403 true true 150 165 209 199 225 225 225 255 195 270 165 255 150 240
-Polygon -7500403 true true 150 165 89 198 75 225 75 255 105 270 135 255 150 240
-Polygon -7500403 true true 139 148 100 105 55 90 25 90 10 105 10 135 25 180 40 195 85 194 139 163
-Polygon -7500403 true true 162 150 200 105 245 90 275 90 290 105 290 135 275 180 260 195 215 195 162 165
-Polygon -16777216 true false 150 255 135 225 120 150 135 120 150 105 165 120 180 150 165 225
-Circle -16777216 true false 135 90 30
+Polygon -1184463 true false 150 165 209 199 225 225 225 255 195 270 165 255 150 240
+Polygon -1184463 true false 150 165 89 198 75 225 75 255 105 270 135 255 150 240
+Polygon -1184463 true false 139 148 100 105 55 90 25 90 10 105 10 135 25 180 40 195 85 194 139 163
+Polygon -1184463 true false 162 150 200 105 245 90 275 90 290 105 290 135 275 180 260 195 215 195 162 165
+Polygon -8630108 true false 150 255 135 225 120 150 135 120 150 105 165 120 180 150 165 225
+Circle -13345367 true false 135 90 30
 Line -16777216 false 150 105 195 60
 Line -16777216 false 150 105 105 60
+
+cactus
+false
+0
+Polygon -14835848 true false 130 300 124 206 110 207 94 201 81 183 75 171 74 95 79 79 88 74 97 79 100 95 101 151 104 169 115 180 126 169 129 31 132 19 145 16 153 20 158 32 162 142 166 149 177 149 185 137 185 119 189 108 199 103 212 108 215 121 215 144 210 165 196 177 176 181 164 182 159 302
+Line -16777216 false 142 32 146 143
+Line -16777216 false 148 179 143 300
+Line -16777216 false 123 191 114 197
+Line -16777216 false 113 199 96 188
+Line -16777216 false 95 188 84 168
+Line -16777216 false 83 168 82 103
+Line -16777216 false 201 147 202 123
+Line -16777216 false 190 162 199 148
+Line -16777216 false 174 164 189 163
 
 car
 false
@@ -432,12 +532,6 @@ circle
 false
 0
 Circle -7500403 true true 0 0 300
-
-circle 2
-false
-0
-Circle -7500403 true true 0 0 300
-Circle -16777216 true false 30 30 240
 
 cow
 false
@@ -480,13 +574,20 @@ Circle -16777216 true false 60 75 60
 Circle -16777216 true false 180 75 60
 Polygon -16777216 true false 150 168 90 184 62 210 47 232 67 244 90 220 109 205 150 198 192 205 210 220 227 242 251 229 236 206 212 183
 
+fire
+false
+0
+Polygon -7500403 true true 151 286 134 282 103 282 59 248 40 210 32 157 37 108 68 146 71 109 83 72 111 27 127 55 148 11 167 41 180 112 195 57 217 91 226 126 227 203 256 156 256 201 238 263 213 278 183 281
+Polygon -955883 true false 126 284 91 251 85 212 91 168 103 132 118 153 125 181 135 141 151 96 185 161 195 203 193 253 164 286
+Polygon -2674135 true false 155 284 172 268 172 243 162 224 148 201 130 233 131 260 135 282
+
 fish
 false
 0
 Polygon -1 true false 44 131 21 87 15 86 0 120 15 150 0 180 13 214 20 212 45 166
 Polygon -1 true false 135 195 119 235 95 218 76 210 46 204 60 165
 Polygon -1 true false 75 45 83 77 71 103 86 114 166 78 135 60
-Polygon -7500403 true true 30 136 151 77 226 81 280 119 292 146 292 160 287 170 270 195 195 210 151 212 30 166
+Polygon -8630108 true false 30 136 151 77 226 81 280 119 292 146 292 160 287 170 270 195 195 210 151 212 30 166
 Circle -16777216 true false 215 106 30
 
 flag
@@ -501,18 +602,28 @@ flower
 false
 0
 Polygon -10899396 true false 135 120 165 165 180 210 180 240 150 300 165 300 195 240 195 195 165 135
-Circle -7500403 true true 85 132 38
-Circle -7500403 true true 130 147 38
-Circle -7500403 true true 192 85 38
-Circle -7500403 true true 85 40 38
-Circle -7500403 true true 177 40 38
-Circle -7500403 true true 177 132 38
-Circle -7500403 true true 70 85 38
-Circle -7500403 true true 130 25 38
-Circle -7500403 true true 96 51 108
-Circle -16777216 true false 113 68 74
+Circle -1184463 true false 85 132 38
+Circle -1184463 true false 130 147 38
+Circle -1184463 true false 192 85 38
+Circle -1184463 true false 85 40 38
+Circle -1184463 true false 177 40 38
+Circle -1184463 true false 177 132 38
+Circle -1184463 true false 70 85 38
+Circle -1184463 true false 130 25 38
+Circle -955883 true false 96 51 108
+Circle -1184463 true false 113 68 74
 Polygon -10899396 true false 189 233 219 188 249 173 279 188 234 218
 Polygon -10899396 true false 180 255 150 210 105 210 75 240 135 240
+
+folha
+false
+0
+Rectangle -6459832 true false 144 218 156 298
+Polygon -13840069 true false 150 263 133 276 102 276 58 242 35 176 33 139 43 114 54 123 62 87 75 53 94 30 104 39 120 9 155 31 180 68 191 56 216 85 235 125 240 173 250 165 248 205 225 247 200 271 176 275
+Line -6459832 false 75 75 120 195
+Line -6459832 false 210 120 165 240
+Line -6459832 false 60 120 105 240
+Line -6459832 false 195 75 150 195
 
 house
 false
@@ -521,6 +632,16 @@ Rectangle -7500403 true true 45 120 255 285
 Rectangle -16777216 true false 120 210 180 285
 Polygon -7500403 true true 15 120 150 15 285 120
 Line -16777216 false 30 120 270 120
+
+lanche
+false
+0
+Polygon -955883 true false 30 105 45 255 105 255 120 105
+Rectangle -16777216 true false 15 90 135 105
+Polygon -1 true false 75 90 105 15 120 15 90 90
+Polygon -8630108 true false 135 225 150 240 195 255 225 255 270 240 285 225 150 225
+Polygon -8630108 true false 135 180 150 165 195 150 225 150 270 165 285 180 150 180
+Rectangle -1184463 true false 135 195 285 210
 
 leaf
 false
@@ -555,14 +676,51 @@ Polygon -7500403 true true 105 90 60 150 75 180 135 105
 plant
 false
 0
-Rectangle -7500403 true true 135 90 165 300
-Polygon -7500403 true true 135 255 90 210 45 195 75 255 135 285
-Polygon -7500403 true true 165 255 210 210 255 195 225 255 165 285
-Polygon -7500403 true true 135 180 90 135 45 120 75 180 135 210
-Polygon -7500403 true true 165 180 165 210 225 180 255 120 210 135
-Polygon -7500403 true true 135 105 90 60 45 45 75 105 135 135
-Polygon -7500403 true true 165 105 165 135 225 105 255 45 210 60
-Polygon -7500403 true true 135 90 120 45 150 15 180 45 165 90
+Rectangle -10899396 true false 135 90 165 300
+Polygon -14835848 true false 135 255 90 210 45 195 75 255 135 285
+Polygon -10899396 true false 165 270 210 225 255 210 225 270 165 300
+Polygon -13840069 true false 135 180 90 135 45 120 75 180 135 210
+Polygon -13840069 true false 165 180 165 210 225 180 255 120 210 135
+Polygon -14835848 true false 135 105 90 60 45 45 75 105 135 135
+Polygon -13840069 true false 165 105 165 135 225 105 255 45 210 60
+Polygon -13840069 true false 135 90 120 45 150 15 180 45 165 90
+
+queen
+true
+0
+Polygon -8630108 true false 150 19 120 30 120 45 130 66 144 81 127 96 129 113 144 134 136 185 121 195 114 217 120 255 135 270 165 270 180 255 188 218 181 195 165 184 157 134 170 115 173 95 156 81 171 66 181 42 180 30
+Polygon -13345367 true false 150 167 159 185 190 182 225 212 255 257 240 212 200 170 154 172
+Polygon -1184463 true false 161 167 201 150 237 149 281 182 245 140 202 137 158 154
+Polygon -2674135 true false 155 135 185 120 230 105 275 75 233 115 201 124 155 150
+Line -2064490 false 120 36 75 45
+Line -5825686 false 75 45 90 15
+Line -2064490 false 180 35 225 45
+Line -5825686 false 225 45 210 15
+Polygon -2674135 true false 145 135 115 120 70 105 25 75 67 115 99 124 145 150
+Polygon -1184463 true false 139 167 99 150 63 149 19 182 55 140 98 137 142 154
+Polygon -13345367 true false 150 167 141 185 110 182 75 212 45 257 60 212 100 170 146 172
+
+rio
+false
+9
+Circle -6459832 true false 15 15 270
+Circle -13791810 true true 30 30 240
+
+sheep
+false
+15
+Circle -1 true true 203 65 88
+Circle -1 true true 70 65 162
+Circle -1 true true 150 105 120
+Polygon -7500403 true false 218 120 240 165 255 165 278 120
+Circle -7500403 true false 214 72 67
+Rectangle -1 true true 164 223 179 298
+Polygon -1 true true 45 285 30 285 30 240 15 195 45 210
+Circle -1 true true 3 83 150
+Rectangle -1 true true 65 221 80 296
+Polygon -1 true true 195 285 210 285 210 240 240 210 195 210
+Polygon -7500403 true false 276 85 285 105 302 99 294 83
+Polygon -7500403 true false 219 85 210 105 193 99 201 83
 
 square
 false
@@ -580,6 +738,22 @@ false
 0
 Polygon -7500403 true true 151 1 185 108 298 108 207 175 242 282 151 216 59 282 94 175 3 108 116 108
 
+tamtam
+false
+0
+Polygon -8630108 true false 87 267 106 290 145 292 157 288 175 292 209 292 207 281 190 276 174 277 156 271 154 261 157 245 151 230 156 221 171 209 214 165 231 171 239 171 263 154 281 137 294 136 297 126 295 119 279 117 241 145 242 128 262 132 282 124 288 108 269 88 247 73 226 72 213 76 208 88 190 112 151 107 119 117 84 139 61 175 57 210 65 231 79 253 65 243 46 187 49 157 82 109 115 93 146 83 202 49 231 13 181 12 142 6 95 30 50 39 12 96 0 162 23 250 68 275
+Polygon -16777216 true false 237 85 249 84 255 92 246 95
+Line -16777216 false 221 82 213 93
+Line -16777216 false 253 119 266 124
+Line -16777216 false 278 110 278 116
+Line -16777216 false 149 229 135 211
+Line -16777216 false 134 211 115 207
+Line -16777216 false 117 207 106 211
+Line -16777216 false 91 268 131 290
+Line -16777216 false 220 82 213 79
+Line -16777216 false 286 126 294 128
+Line -16777216 false 193 284 206 285
+
 target
 false
 0
@@ -592,12 +766,12 @@ Circle -7500403 true true 120 120 60
 tree
 false
 0
-Circle -7500403 true true 118 3 94
-Rectangle -6459832 true false 120 195 180 300
-Circle -7500403 true true 65 21 108
-Circle -7500403 true true 116 41 127
-Circle -7500403 true true 45 90 120
-Circle -7500403 true true 104 74 152
+Circle -13840069 true false 118 3 94
+Rectangle -955883 true false 120 195 180 300
+Circle -14835848 true false 65 21 108
+Circle -10899396 true false 116 41 127
+Circle -13840069 true false 45 90 120
+Circle -14835848 true false 104 74 152
 
 triangle
 false
@@ -647,6 +821,36 @@ Line -7500403 true 216 40 79 269
 Line -7500403 true 40 84 269 221
 Line -7500403 true 40 216 269 79
 Line -7500403 true 84 40 221 269
+
+wolf
+false
+0
+Polygon -7500403 true true 75 225 97 249 112 252 122 252 114 242 102 241 89 224 94 181 64 113 46 119 31 150 32 164 61 204 57 242 85 266 91 271 101 271 96 257 89 257 70 242
+Polygon -7500403 true true 216 73 219 56 229 42 237 66 226 71
+Polygon -7500403 true true 181 106 213 69 226 62 257 70 260 89 285 110 272 124 234 116 218 134 209 150 204 163 192 178 169 185 154 189 129 189 89 180 69 166 63 113 124 110 160 111 170 104
+Polygon -6459832 true true 252 143 242 141
+Polygon -6459832 true true 254 136 232 137
+Line -16777216 false 75 224 89 179
+Line -16777216 false 80 159 89 179
+Polygon -6459832 true true 262 138 234 149
+Polygon -7500403 true true 50 121 36 119 24 123 14 128 6 143 8 165 8 181 7 197 4 233 23 201 28 184 30 169 28 153 48 145
+Polygon -7500403 true true 171 181 178 263 187 277 197 273 202 267 187 260 186 236 194 167
+Polygon -7500403 true true 187 163 195 240 214 260 222 256 222 248 212 245 205 230 205 155
+Polygon -7500403 true true 223 75 226 58 245 44 244 68 233 73
+Line -16777216 false 89 181 112 185
+Line -16777216 false 31 150 47 118
+Polygon -16777216 true false 235 90 250 91 255 99 248 98 244 92
+Line -16777216 false 236 112 246 119
+Polygon -16777216 true false 278 119 282 116 274 113
+Line -16777216 false 189 201 203 161
+Line -16777216 false 90 262 94 272
+Line -16777216 false 110 246 119 252
+Line -16777216 false 190 266 194 274
+Line -16777216 false 218 251 219 257
+Polygon -16777216 true false 230 67 228 54 222 62 224 72
+Line -16777216 false 246 67 234 64
+Line -16777216 false 229 45 235 68
+Line -16777216 false 30 150 30 165
 
 x
 false
