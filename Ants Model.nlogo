@@ -3,7 +3,7 @@
 ; === DEFINIÇÃO DE VARIÁVEIS ===
 
 breed [tamtams tamtam]
-breed [flowers flower]
+
 
 ; Variáveis dos patches (espaço onde as formigas se movem)
 patches-own [
@@ -19,6 +19,7 @@ patches-own [
 
 to setup
   clear-all                             ; limpa o mundo e reinicia a simulação
+  set evaporation-rate 5                ; Exemplo de taxa de evaporação
   ask patches [ set pcolor brown ]      ; define o chão verde inicialmente
   set-default-shape turtles "bug"       ; define o formato das formigas como "inseto"
   create-turtles population [           ; cria formigas com base no valor do slider 'population'
@@ -34,11 +35,7 @@ to setup
     set shape "tamtam"
     set size 10
   ]
-  create-flowers 20[
-    setxy random-xcor random-ycor
-    set shape "flower"
-    set size 5
-  ]
+
   reset-ticks                           ; reinicia o contador de tempo da simulação
 end
 
@@ -94,6 +91,7 @@ to go
     pickDirection
   ]
   tick
+
   ask turtles [
     if who >= ticks [ stop ]             ; sincroniza a saída das formigas do ninho com o tempo
     ifelse color = red [
@@ -132,7 +130,7 @@ to recolor-patch
         if food-source-number = 1 [ set pcolor cyan ]
         if food-source-number = 2 [ set pcolor sky ]
         if food-source-number = 3 [ set pcolor blue ]
-        if food-source-number = 4 [ set pcolor red ]
+        if food-source-number = 4 [ set pcolor pink ]
       ] [
         ifelse chemical > 1 [
           set pcolor scale-color yellow chemical 0.1 5  ; Feromônio em amarelo
@@ -235,7 +233,6 @@ to move-outside-nest
   ]
 end
 
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 257
@@ -290,7 +287,7 @@ diffusion-rate
 diffusion-rate
 0.0
 99.0
-50.0
+1.0
 1.0
 1
 NIL
@@ -305,7 +302,7 @@ evaporation-rate
 evaporation-rate
 0.0
 99.0
-10.0
+5.0
 1.0
 1
 NIL
@@ -337,7 +334,7 @@ population
 population
 0.0
 200.0
-125.0
+100.0
 1.0
 1
 NIL
