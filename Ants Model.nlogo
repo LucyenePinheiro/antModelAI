@@ -1,46 +1,44 @@
-; Definição das variáveis dos patches e das tartarugas
+; === Definição das variáveis dos patches e das tartarugas ===
 
+; Variáveis associadas aos patches
 patches-own [
-  chemical
-  food
-  nest?
-  nest-scent
-  food-source-number
-  wall?
-  fire?
-  folha?
+  chemical           ;; Quantidade de feromônio no patch
+  food               ;; Quantidade de comida no patch
+  nest?              ;; Se o patch é um ninho
+  nest-scent         ;; Quantidade de cheiro do ninho
+  food-source-number ;; Identificador da fonte de alimento
+  wall?              ;; Se o patch é uma parede
+  fire?              ;; Se o patch contém fogo
+  folha?             ;; Se o patch contém uma folha
 ]
 
-turtles-own [time-to-leave predator?]  ;; Adicionando 'predator?' para controlar se uma tartaruga é predador ou não
+; Variáveis associadas às tartarugas (formigas)
+turtles-own [
+  time-to-leave   ;; Tempo para a formiga sair
+  original-size   ;; Tamanho original da formiga
+]
 
-; === PROCEDIMENTOS DE CONFIGURAÇÃO ===
+; === Função de setup ===
+
 to setup
-  clear-all
-  set evaporation-rate 5
-  ask patches [ set pcolor black ]
-  set-default-shape turtles "bug"
+  clear-all                           ;; Limpa o mundo
+  set evaporation-rate 5              ;; Define taxa de evaporação dos feromônios
+  ask patches [ set pcolor BLACK ]    ;; Define a cor dos patches como preto
+  set-default-shape turtles "bug"     ;; Define o formato das formigas como "bug"
 
-  create-turtles population [
-    set size 2
-    set color red
-    set time-to-leave random 10  ;; Cada formiga tem um tempo aleatório para sair
-    set predator? false           ;; Atribui o valor inicial de false para predator?
+  create-turtles population [         ;; Cria as formigas (tartarugas)
+    set size 2                         ;; Define o tamanho das formigas
+    set original-size size             ;; Armazena o tamanho original
+    set color red                      ;; Define a cor das formigas como vermelha
+    set time-to-leave random 10        ;; Define um tempo aleatório para cada formiga sair
   ]
 
-  ; Criação do predador
-  create-turtles 1 [
-    set color black                ; Cor do predador
-    set size 3                     ; Tamanho maior que a formiga
-    set predator? true             ; Marca como predador
-    setxy random-xcor random-ycor  ; Posiciona o predador aleatoriamente
-  ]
-
-  setup-patches
-  move-outside-nest
-
-  reset-ticks
+  setup-patches                       ;; Configura os patches (mundo)
+  move-outside-nest                   ;; Move as formigas para fora do ninho
+  reset-ticks                          ;; Reseta o contador de tempo (ticks)
 end
 
+; === Funções de setup dos patches ===
 
 to setup-patches
   ask patches [
@@ -51,26 +49,27 @@ to setup-patches
     set nest-scent 0
     set food-source-number 0
     set wall? false
-    set fire? false  ;; Adiciona valor padrão para 'fire?'
+    set fire? false                   ;; Inicializa a variável 'fire?'
     set folha? false
 
-    setup-nest
-    setup-wall
-    setup-food
-    recolor-patch
+    setup-nest                         ;; Configura o ninho
+    setup-wall                         ;; Configura as paredes
+    setup-food                         ;; Configura as fontes de alimento
+    recolor-patch                      ;; Atualiza a cor do patch
   ]
-  setup-fires ;; Adiciona as rochas após configurar muralhas e o ninho
-  setup-folhas
+  setup-fires                          ;; Adiciona as rochas (fogo)
+  setup-folhas                         ;; Adiciona folhas ao ambiente
 end
 
+; === Funções de configuração do ninho, paredes, alimentos, etc ===
 
 to setup-nest
-  set nest? (distancexy 0 0) < 3         ; define patches dentro de um raio de 3 unidades como ninho
-  set nest-scent 200 - distancexy 0 0    ; valor maior próximo ao ninho, decrescendo com a distância
+  set nest? (distancexy 0 0) < 3       ;; Define patches dentro de um raio de 3 unidades como ninho
+  set nest-scent 200 - distancexy 0 0  ;; Valor de cheiro do ninho, diminui com a distância
 end
 
 to setup-wall
-  set wall? (distancexy 0 0) >= 9.2 and (distancexy 0 0) <= 10 ; cria muralha em torno do ninho
+  set wall? (distancexy 0 0) >= 9.2 and (distancexy 0 0) <= 10 ;; Cria muralhas ao redor do ninho
 end
 
 to setup-fires
@@ -81,30 +80,30 @@ to setup-fires
     let fire-patch one-of patches with [not wall? and not nest? and fire? = false]
     if fire-patch != nobody [
       ask fire-patch [
-        set fire? true
-        set pcolor orange
+        set fire? true                ;; Marca o patch com fogo
+        set pcolor orange            ;; Define a cor do patch com fogo
       ]
     ]
   ]
 end
 
 to setup-folhas
-  ;; Define uma quantidade aleatória de rochas
-  let num-folhas 5 ;; Ajuste o número de rochas conforme necessário
+  ;; Define uma quantidade aleatória de folhas
+  let num-folhas 5 ;; Ajuste o número de folhas conforme necessário
   repeat num-folhas [
     ;; Escolhe aleatoriamente um patch fora da muralha e do ninho
     let folha-patch one-of patches with [not wall? and not nest? and fire? and folha? = false]
     if folha-patch != nobody [
       ask folha-patch [
-        set folha? true
-        set pcolor green
+        set folha? true               ;; Marca o patch com folha
+        set pcolor green              ;; Define a cor do patch com folha
       ]
     ]
   ]
 end
 
 to setup-food
-  ; Configura fontes de alimento em posições específicas
+  ;; Configura fontes de alimento em posições específicas
   if (distancexy (0.6 * max-pxcor) 0) < 4 [
     set food-source-number 1
   ]
@@ -117,45 +116,48 @@ to setup-food
   if (distancexy (-0.8 * max-pxcor) (0.8 * max-pycor)) < 2 [
     set food-source-number 4
   ]
-  ; Se o patch faz parte de uma fonte de alimento, atribui uma quantidade de comida (1 ou 2)
+  ;; Se o patch faz parte de uma fonte de alimento, atribui uma quantidade de comida (1 ou 2)
   if food-source-number > 0 [
     set food one-of [1 2]
   ]
 end
 
-; === PROCEDIMENTOS PRINCIPAIS ===
+; === Procedimentos principais ===
 
 to go
-  ask patches [
-    if fire? [ set pcolor orange ]
+  ;; Verifica se ainda há formigas no mundo
+  if (count turtles) = 0 [
+    setup  ;; Reinicia o mundo se não houver formigas restantes
   ]
 
   ask patches [
-    if folha? [ set pcolor green ]
+    if fire? [ set pcolor orange ]  ;; Se for um patch com fogo, altera a cor para laranja
+  ]
+  ask patches [
+    if folha? [ set pcolor green ]   ;; Se for um patch com folha, altera a cor para verde
   ]
 
-  tick
+  tick  ;; Avança o contador de tempo (ticks)
 
   ask turtles [
-    if ticks >= time-to-leave [  ;; Verifica se é o tempo de saída da formiga
-      ifelse color = red [
-        look-for-food  ;; procura por comida se não estiver carregando
+    if ticks >= time-to-leave [  ;; Verifica se chegou o tempo da formiga sair
+      ifelse color = red [          ;; Se não estiver carregando comida
+        look-for-food                ;; Procura por comida
       ] [
-        return-to-nest  ;; retorna ao ninho se estiver carregando comida
+        return-to-nest               ;; Retorna ao ninho se estiver carregando comida
       ]
-      wiggle  ;; movimento aleatório para simular procura
-      fd 1  ;; move-se para frente
-      let next-patch patch-ahead 1
+      wiggle                         ;; Movimento aleatório para simular busca
+      fd 1                            ;; Move-se para frente
+      let next-patch patch-ahead 1    ;; Obtém o próximo patch à frente
       if next-patch != nobody [
-        if [fire?] of next-patch [
-          set size size - 1  ;; Diminui o tamanho da formiga
-          if size <= 0 [ die ]  ;; Se o tamanho for 0 ou menor, a formiga morre
+        if [fire?] of next-patch [    ;; Se o próximo patch tiver fogo
+          set size size - 1          ;; Diminui o tamanho da formiga
+          if size <= 0 [ die ]       ;; Se o tamanho for 0 ou menor, a formiga morre
         ]
       ]
       if next-patch != nobody [
-        if [folha?] of next-patch [
-          set size size + 2  ;; Aumenta o tamanho da formiga
-
+        if [folha?] of next-patch [  ;; Se o próximo patch tiver folha
+          set size size + 2          ;; Aumenta o tamanho da formiga
         ]
       ]
     ]
@@ -163,23 +165,21 @@ to go
 
   ;; Verifica se toda a comida foi coletada
   if all? patches [ food = 0 ] [
-    setup  ;; reinicia a simulação
+    setup  ;; Reinicia a simulação
   ]
 
-  diffuse chemical (diffusion-rate / 100)  ;; difusão do feromônio entre os patches
-
+  diffuse chemical (diffusion-rate / 100)  ;; Difunde o feromônio entre os patches
   ask patches [
-    set chemical chemical * (100 - evaporation-rate) / 100  ;; evaporação do feromônio
-    recolor-patch  ;; atualiza a cor do patch após mudanças
+    set chemical chemical * (100 - evaporation-rate) / 100  ;; Aplica evaporação do feromônio
+    recolor-patch  ;; Atualiza a cor do patch
   ]
-
-  tick  ;; avança o contador de tempo da simulação
+  tick  ;; Avança o contador de tempo da simulação
 end
 
-
-; === PROCEDIMENTOS DE RECOLORIR ===
+; === Procedimentos de recolorir patches ===
 
 to recolor-patch
+  ;; Define a cor do patch com base no seu tipo (folha, parede, fogo, ninho, etc.)
   ifelse folha? [
     set pcolor green
   ] [
@@ -210,127 +210,85 @@ to recolor-patch
   ]
 end
 
-
-
-; === COMPORTAMENTOS DAS FORMIGAS ===
+; === Comportamentos das formigas ===
 
 to look-for-food
+  ;; Se o patch tiver comida, a formiga coleta
   if food > 0 [
-    set color pcolor                      ; muda a cor da formiga para a cor da comida
-    set food food - 1                     ; reduz a quantidade de comida no patch
-    rt 180                                ; vira 180 graus para retornar ao ninho
-    stop                                  ; finaliza o procedimento atual
+    set color pcolor                      ;; Muda a cor da formiga para a cor da comida
+    set food food - 1                     ;; Reduz a quantidade de comida no patch
+    rt 180                                ;; Vira 180 graus para retornar ao ninho
+    stop                                  ;; Finaliza o procedimento de busca
   ]
+  ;; Se houver feromônio, a formiga segue o rastro
   if (chemical >= 0.05) and (chemical < 2) [
-    uphill-chemical                       ; segue o rastro de feromônio
+    uphill-chemical                       ;; Segue o rastro de feromônio
   ]
 end
 
 to return-to-nest
   ifelse nest? [
-    set color red                         ; deposita a comida e muda a cor para não carregando
-    rt 180                                ; vira 180 graus para sair novamente
+    set color red                         ;; Depõe a comida e muda a cor para não carregando
+    set size original-size                ;; Restaura o tamanho original da formiga
+    rt 180                                ;; Vira 180 graus para sair novamente
   ] [
-    set chemical chemical + 60            ; deposita feromônio no caminho de volta
-    uphill-nest-scent                     ; move-se em direção ao ninho seguindo o gradiente
+    set chemical chemical + 30            ;; Deposita feromônio no caminho de volta
+    uphill-nest-scent                     ;; Segue o rastro de cheiro do ninho
   ]
 end
 
-; === MOVIMENTAÇÃO E ORIENTAÇÃO ===
+; === Movimentação e orientação ===
 
 to uphill-chemical
+  ;; Verifica os cheiros à frente, à direita e à esquerda da formiga
   let scent-ahead chemical-scent-at-angle 0
   let scent-right chemical-scent-at-angle 45
   let scent-left chemical-scent-at-angle -45
   if (scent-right > scent-ahead) or (scent-left > scent-ahead) [
     ifelse scent-right > scent-left [
-      rt 45                              ; vira 45 graus à direita
+      rt 45                              ;; Vira 45 graus à direita
     ] [
-      lt 45                              ; vira 45 graus à esquerda
+      lt 45                              ;; Vira 45 graus à esquerda
     ]
   ]
 end
 
 to uphill-nest-scent
+  ;; Segue o cheiro do ninho
   let scent-ahead nest-scent-at-angle 0
   let scent-right nest-scent-at-angle 45
   let scent-left nest-scent-at-angle -45
   if (scent-right > scent-ahead) or (scent-left > scent-ahead) [
     ifelse scent-right > scent-left [
-      rt 45                              ; vira 45 graus à direita
+      rt 45                              ;; Vira 45 graus à direita
     ] [
-      lt 45                              ; vira 45 graus à esquerda
+      lt 45                              ;; Vira 45 graus à esquerda
     ]
   ]
 end
 
 to wiggle
+  ;; Movimento aleatório para simular a busca
   rt random 40
   lt random 40
   let ahead-patch patch-ahead 1
-  if (not can-move? 1) or [wall? or fire? or folha?]  of ahead-patch [
-    rt 180
-  ] ;; Evita muralhas, rochas e patches com fogo
-end
-
-; === MOVIMENTO E AÇÃO DO PREDADOR ===
-
-; === MOVIMENTO E AÇÃO DO PREDADOR ===
-
-; === MOVIMENTO E AÇÃO DO PREDADOR ===
-
-to move-predator
-  ; Verifica se o próximo patch não é o ninho nem a barreira
-  let next-patch patch-ahead 1
-  if (next-patch != nobody) and not ( [nest?] of next-patch or [wall?] of next-patch ) [
-    ; Movimento aleatório do predador
-    rt random 50
-    lt random 50
-    fd 1
-  ]
-  ; Caso o predador esteja prestes a entrar no ninho ou na barreira
-  if (next-patch = nobody) or ( [nest?] of next-patch or [wall?] of next-patch ) [
-    ; Escolhe um patch aleatório que não seja ninho nem barreira
-    let random-patch one-of patches with [not nest? and not wall?]
-    if random-patch != nobody [
-      move-to random-patch
-    ]
+  if (not can-move? 1) or [wall? or fire? or folha?] of ahead-patch [
+    rt 180                              ;; Evita muralhas, fogo e folhas
   ]
 end
 
-
-
-
-to attack-ants
-  ask turtles with [predator?] [
-    let target one-of turtles with [color = red]  ;; Procura por formigas
-    if target != nobody [
-      if distance target < 1 [                ;; Se a formiga estiver perto
-        ask target [
-          die                                 ;; A formiga morre
-        ]
-        set size size + 1                     ;; Aumenta o tamanho do predador
-        ;; Verifica se todas as formigas foram comidas
-        if (count turtles with [color = red]) = 0 [
-
-        ]
-      ]
-    ]
-  ]
-end
-
-; === FUNÇÕES AUXILIARES ===
+; === Funções auxiliares ===
 
 to-report nest-scent-at-angle [angle]
   let p patch-right-and-ahead angle 1
-  if p = nobody [ report 0 ]             ; se não houver patch, retorna 0
-  report [nest-scent] of p               ; retorna o valor de 'nest-scent' do patch
+  if p = nobody [ report 0 ]             ;; Se não houver patch, retorna 0
+  report [nest-scent] of p               ;; Retorna o valor de 'nest-scent' do patch
 end
 
 to-report chemical-scent-at-angle [angle]
   let p patch-right-and-ahead angle 1
-  if p = nobody [ report 0 ]             ; se não houver patch, retorna 0
-  report [chemical] of p                 ; retorna o valor de 'chemical' do patch
+  if p = nobody [ report 0 ]             ;; Se não houver patch, retorna 0
+  report [chemical] of p                 ;; Retorna o valor de 'chemical' do patch
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;
@@ -452,7 +410,7 @@ population
 population
 0.0
 200.0
-59.0
+6.0
 1.0
 1
 NIL
