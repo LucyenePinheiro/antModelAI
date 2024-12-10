@@ -1,9 +1,4 @@
-; === LUCYENE PINHEIRO NEVES ===
-; === INSTRUÇÕES ===
-; === DEFINIÇÃO DE VARIÁVEIS ===
-
-breed [tamtams tamtam]
-
+; Definição das variáveis dos patches e das tartarugas
 patches-own [
   chemical
   food
@@ -14,7 +9,7 @@ patches-own [
   fire?
 ]
 
-turtles-own [time-to-leave]  ;; Variável para controlar o tempo de saída das formigas
+turtles-own [time-to-leave predator?]  ;; Adicionando 'predator?' para controlar se uma tartaruga é predador ou não
 
 ; === PROCEDIMENTOS DE CONFIGURAÇÃO ===
 to setup
@@ -22,20 +17,24 @@ to setup
   set evaporation-rate 5
   ask patches [ set pcolor brown ]
   set-default-shape turtles "bug"
+
   create-turtles population [
     set size 2
     set color red
     set time-to-leave random 10  ;; Cada formiga tem um tempo aleatório para sair
+    set predator? false           ;; Atribui o valor inicial de false para predator?
+  ]
+
+  ; Criação do predador
+  create-turtles 1 [
+    set color black                ; Cor do predador
+    set size 3                     ; Tamanho maior que a formiga
+    set predator? true             ; Marca como predador
+    setxy random-xcor random-ycor  ; Posiciona o predador aleatoriamente
   ]
 
   setup-patches
   move-outside-nest
-
-  create-tamtams 1 [
-    setxy random-xcor random-ycor
-    set shape "tamtam"
-    set size 10
-  ]
 
   reset-ticks
 end
@@ -52,14 +51,12 @@ to setup-patches
     set wall? false
     set fire? false  ;; Adiciona valor padrão para 'fire?'
 
-
     setup-nest
     setup-wall
     setup-food
     recolor-patch
   ]
   setup-fires ;; Adiciona as rochas após configurar muralhas e o ninho
-
 end
 
 
@@ -109,20 +106,17 @@ end
 
 ; === PROCEDIMENTOS PRINCIPAIS ===
 
-to pickDirection
-  let flip random 2
-  ifelse flip = 0 [right random 45][left random 45]
-end
-
 to go
   ask patches [
     if fire? [set pcolor orange]
   ]
-  ask tamtams [
-    forward 1
-    pickDirection
-  ]
+
   tick
+
+  ; Movimento do predador e ataque às formigas
+  ask turtles with [predator? = true] [ move-predator ]  ;; Corrigido para usar uma comparação booleana correta
+
+  attack-ants
 
   ask turtles [
     if ticks >= time-to-leave [  ;; Verifica se é o tempo de saída da formiga
@@ -142,7 +136,6 @@ to go
       ]
     ]
   ]
-
 
   ; Verifica se toda a comida foi coletada
   if all? patches [ food = 0 ] [
@@ -248,8 +241,51 @@ to wiggle
   ] ;; Evita muralhas, rochas e patches com fogo
 end
 
+; === MOVIMENTO E AÇÃO DO PREDADOR ===
+
+; === MOVIMENTO E AÇÃO DO PREDADOR ===
+
+; === MOVIMENTO E AÇÃO DO PREDADOR ===
+
+to move-predator
+  ; Verifica se o próximo patch não é o ninho nem a barreira
+  let next-patch patch-ahead 1
+  if (next-patch != nobody) and not ( [nest?] of next-patch or [wall?] of next-patch ) [
+    ; Movimento aleatório do predador
+    rt random 50
+    lt random 50
+    fd 1
+  ]
+  ; Caso o predador esteja prestes a entrar no ninho ou na barreira
+  if (next-patch = nobody) or ( [nest?] of next-patch or [wall?] of next-patch ) [
+    ; Escolhe um patch aleatório que não seja ninho nem barreira
+    let random-patch one-of patches with [not nest? and not wall?]
+    if random-patch != nobody [
+      move-to random-patch
+    ]
+  ]
+end
 
 
+
+
+to attack-ants
+  ask turtles with [predator?] [
+    let target one-of turtles with [color = red]  ;; Procura por formigas
+    if target != nobody [
+      if distance target < 1 [                ;; Se a formiga estiver perto
+        ask target [
+          die                                 ;; A formiga morre
+        ]
+        set size size + 1                     ;; Aumenta o tamanho do predador
+        ;; Verifica se todas as formigas foram comidas
+        if (count turtles with [color = red]) = 0 [
+
+        ]
+      ]
+    ]
+  ]
+end
 
 ; === FUNÇÕES AUXILIARES ===
 
