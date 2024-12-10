@@ -4,56 +4,40 @@
 
 breed [tamtams tamtam]
 
-; Variáveis dos patches (espaço onde as formigas se movem)
 patches-own [
-  chemical             ; quantidade de feromônio neste patch
-  food                 ; quantidade de comida neste patch (0, 1 ou 2)
-  nest?                ; verdadeiro se o patch é parte do ninho, falso caso contrário
-  nest-scent           ; valor numérico maior próximo ao ninho, usado para orientar as formigas
-  food-source-number   ; identifica as fontes de alimento (1, 2, 3 ou 4)
-  wall?                ; verdadeiro se o patch faz parte da muralha
-  rock?                ; identifica se o patch é uma rocha
+  chemical
+  food
+  nest?
+  nest-scent
+  food-source-number
+  wall?
   fire?
 ]
 
-; === PROCEDIMENTOS DE CONFIGURAÇÃO ===
+turtles-own [time-to-leave]  ;; Variável para controlar o tempo de saída das formigas
 
+; === PROCEDIMENTOS DE CONFIGURAÇÃO ===
 to setup
-  clear-all                             ; limpa o mundo e reinicia a simulação
-  set evaporation-rate 5                ; Exemplo de taxa de evaporação
-  ask patches [ set pcolor brown ]      ; define o chão verde inicialmente
-  set-default-shape turtles "bug"       ; define o formato das formigas como "inseto"
-  create-turtles population [           ; cria formigas com base no valor do slider 'population'
-    set size 2                          ; aumenta o tamanho para melhor visualização
-    set color red                       ; vermelho indica que não está carregando comida
+  clear-all
+  set evaporation-rate 5
+  ask patches [ set pcolor brown ]
+  set-default-shape turtles "bug"
+  create-turtles population [
+    set size 2
+    set color red
+    set time-to-leave random 10  ;; Cada formiga tem um tempo aleatório para sair
   ]
 
-  setup-patches                         ; chama o procedimento para configurar os patches
-  move-outside-nest                     ; movimenta todas as formigas para fora do ninho e da muralha
+  setup-patches
+  move-outside-nest
 
-  create-tamtams 1[
+  create-tamtams 1 [
     setxy random-xcor random-ycor
     set shape "tamtam"
     set size 10
   ]
 
-
-  create-fires-around-wall 17            ; Cria o fogo ao redor da muralha
-
-  reset-ticks                           ; reinicia o contador de tempo da simulação
-end
-
-to create-fires-around-wall [num-fires]
-  let wall-patches patches with [wall?] ; Seleciona patches que fazem parte da muralha
-  repeat num-fires [
-    let fire-patch one-of wall-patches  ; Escolhe um patch ao redor da muralha para colocar o fogo
-    if fire-patch != nobody [
-      ask fire-patch [
-        set fire? true                   ; Marca o patch como tendo fogo
-        set pcolor red                   ; Muda a cor do patch para vermelho, representando fogo
-      ]
-    ]
-  ]
+  reset-ticks
 end
 
 
@@ -66,17 +50,17 @@ to setup-patches
     set nest-scent 0
     set food-source-number 0
     set wall? false
-    set rock? false  ;; Adiciona valor padrão para 'rock?'
-    set fire? false
+    set fire? false  ;; Adiciona valor padrão para 'fire?'
+
 
     setup-nest
     setup-wall
     setup-food
     recolor-patch
   ]
-  setup-rocks ;; Adiciona as rochas após configurar muralhas e o ninho
-end
+  setup-fires ;; Adiciona as rochas após configurar muralhas e o ninho
 
+end
 
 
 to setup-nest
@@ -88,17 +72,16 @@ to setup-wall
   set wall? (distancexy 0 0) >= 9.2 and (distancexy 0 0) <= 10 ; cria muralha em torno do ninho
 end
 
-to setup-rocks
+to setup-fires
   ;; Define uma quantidade aleatória de rochas
-  let num-rocks 10 ;; Ajuste o número de rochas conforme necessário
-  let radius-rocks 200 ;; Define o "tamanho" de cada rocha
-  repeat num-rocks [
+  let num-fires 19 ;; Ajuste o número de rochas conforme necessário
+  repeat num-fires [
     ;; Escolhe aleatoriamente um patch fora da muralha e do ninho
-    let rock-patch one-of patches with [not wall? and not nest? and rock? = false]
-    if rock-patch != nobody [
-      ask rock-patch [
-        set rock? true
-        set pcolor black
+    let fire-patch one-of patches with [not wall? and not nest? and fire? = false]
+    if fire-patch != nobody [
+      ask fire-patch [
+        set fire? true
+        set pcolor orange
       ]
     ]
   ]
@@ -108,7 +91,6 @@ to setup-food
   ; Configura fontes de alimento em posições específicas
   if (distancexy (0.6 * max-pxcor) 0) < 4 [
     set food-source-number 1
-
   ]
   if (distancexy (-0.6 * max-pxcor) (-0.6 * max-pycor)) < 2 [
     set food-source-number 2
@@ -143,15 +125,24 @@ to go
   tick
 
   ask turtles [
-    if who >= ticks [ stop ]             ; sincroniza a saída das formigas do ninho com o tempo
-    ifelse color = red [
-      look-for-food                      ; procura por comida se não estiver carregando
-    ] [
-      return-to-nest                     ; retorna ao ninho se estiver carregando comida
+    if ticks >= time-to-leave [  ;; Verifica se é o tempo de saída da formiga
+      ifelse color = red [
+        look-for-food                      ; procura por comida se não estiver carregando
+      ] [
+        return-to-nest                     ; retorna ao ninho se estiver carregando comida
+      ]
+      wiggle                               ; movimento aleatório para simular procura
+      fd 1                                 ; move-se para frente
+      let next-patch patch-ahead 1;
+      if next-patch != nobody [
+        if [fire?] of next-patch [
+          set size size - 1             ; Diminui o tamanho da formiga
+          if size <= 0 [ die ]          ; Se o tamanho for 0 ou menor, a formiga morre
+        ]
+      ]
     ]
-    wiggle                               ; movimento aleatório para simular procura
-    fd 1                                 ; move-se para frente
   ]
+
 
   ; Verifica se toda a comida foi coletada
   if all? patches [ food = 0 ] [
@@ -172,8 +163,8 @@ to recolor-patch
   ifelse wall? [
     set pcolor gray
   ] [
-    ifelse rock? [
-      set pcolor black ;; Rochas são pretas
+    ifelse fire? [
+      set pcolor orange
     ] [
       ifelse nest? [
         set pcolor violet
@@ -251,8 +242,12 @@ end
 to wiggle
   rt random 40
   lt random 40
-  if not can-move? 1 or [wall? or rock?] of patch-ahead 1 [ rt 180 ] ;; Evita muralhas e rochas
+  let ahead-patch patch-ahead 1
+  if (not can-move? 1) or [wall? or fire?]  of ahead-patch [
+    rt 180
+  ] ;; Evita muralhas, rochas e patches com fogo
 end
+
 
 
 
