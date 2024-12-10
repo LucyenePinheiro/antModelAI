@@ -4,6 +4,7 @@
 
 breed [tamtams tamtam]
 
+
 ; Variáveis dos patches (espaço onde as formigas se movem)
 patches-own [
   chemical             ; quantidade de feromônio neste patch
@@ -36,7 +37,6 @@ to setup
     set shape "tamtam"
     set size 10
   ]
-
 
   create-fires-around-wall 17            ; Cria o fogo ao redor da muralha
 
