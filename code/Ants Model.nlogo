@@ -1,4 +1,5 @@
-; === Definição das variáveis dos patches e das tartarugas ===
+;;;LUCYENE PINHEIRO NEVES;;;
+;=== Definição das variáveis dos patches e das turtles ===
 
 ; Variáveis associadas aos patches
 patches-own [
@@ -292,7 +293,7 @@ to-report chemical-scent-at-angle [angle]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;
-;;; Funções novas ;;;
+;;;  OUTRAS FUNÇÕES ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
 
 to move-outside-nest
