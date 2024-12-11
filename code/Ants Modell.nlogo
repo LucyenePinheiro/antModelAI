@@ -1,4 +1,5 @@
-; === Definição das variáveis dos patches e das tartarugas ===
+;;;LUCYENE PINHEIRO NEVES;;;
+;=== Definição das variáveis dos patches e das turtles ===
 
 ; Variáveis associadas aos patches
 patches-own [
@@ -12,7 +13,7 @@ patches-own [
   folha?             ;; Se o patch contém uma folha
 ]
 
-; Variáveis associadas às tartarugas (formigas)
+; Variáveis associadas às turtles (formigas)
 turtles-own [
   time-to-leave   ;; Tempo para a formiga sair
   original-size   ;; Tamanho original da formiga
@@ -26,7 +27,7 @@ to setup
   ask patches [ set pcolor BLACK ]    ;; Define a cor dos patches como preto
   set-default-shape turtles "bug"     ;; Define o formato das formigas como "bug"
 
-  create-turtles population [         ;; Cria as formigas (tartarugas)
+  create-turtles population [         ;; Cria as formigas (turtles)
     set size 2                         ;; Define o tamanho das formigas
     set original-size size             ;; Armazena o tamanho original
     set color red                      ;; Define a cor das formigas como vermelha
@@ -292,7 +293,7 @@ to-report chemical-scent-at-angle [angle]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;
-;;;
+;;;  OUTRAS FUNÇÕES ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
 
 to move-outside-nest
